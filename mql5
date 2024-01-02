@@ -1,0 +1,99 @@
+
+/*
+Bounce Zone MT5
+Developer: Forex Robot Easy Team
+Website: forexroboteasy.com
+*/
+
+// Indicator input parameters
+input int GreenZonePeriod = 10; // Period for green zone
+input int RedZonePeriod = 10; // Period for red zone
+input int MovingAveragePeriod = 20; // Period for moving average
+
+// Global variables
+double[] GreenZoneBuffer; // Buffer to store green zone values
+double[] RedZoneBuffer; // Buffer to store red zone values
+double[] MovingAverageBuffer; // Buffer to store moving average values
+
+// Indicator initialization function
+int OnInit()
+{
+    // Set indicator buffers
+    SetIndexBuffer(0, GreenZoneBuffer);
+    SetIndexBuffer(1, RedZoneBuffer);
+    SetIndexBuffer(2, MovingAverageBuffer);
+
+    // Set indicator labels
+    SetIndexLabel(0, 'Green Zone');
+    SetIndexLabel(1, 'Red Zone');
+    SetIndexLabel(2, 'Moving Average');
+
+    // Set indicator style
+    SetIndexStyle(0, DRAW_COLOR_LINE, clrGreen);
+    SetIndexStyle(1, DRAW_COLOR_LINE, clrRed);
+    SetIndexStyle(2, DRAW_COLOR_LINE, clrBlue);
+
+    // Set indicator parameters
+    SetIndexDrawBegin(0, GreenZonePeriod);
+    SetIndexDrawBegin(1, RedZonePeriod);
+    SetIndexDrawBegin(2, MovingAveragePeriod);
+
+    return INIT_SUCCEEDED;
+}
+
+// Indicator calculation function
+int OnCalculate(const int rates_total,
+                const int prev_calculated,
+                const datetime &time[],
+                const double &open[],
+                const double &high[],
+                const double &low[],
+                const double &close[],
+                const long &tick_volume[],
+                const long &volume[],
+                const int &spread[])
+{
+    // Calculate moving average
+    ArraySetAsSeries(open, true);
+    ArraySetAsSeries(high, true);
+    ArraySetAsSeries(low, true);
+    ArraySetAsSeries(close, true);
+
+    int limit = rates_total - prev_calculated;
+    for (int i = 0; i < limit; i++)
+    {
+        MovingAverageBuffer[i] = iMA(NULL, 0, MovingAveragePeriod, 0, MODE_SMA, PRICE_CLOSE, i);
+    }
+
+    // Calculate bounce zones
+    for (int i = 0; i < limit; i++)
+    {
+        double greenZoneValue = iHigh(NULL, 0, GreenZonePeriod, i) + iLow(NULL, 0, GreenZonePeriod, i) / 2;
+        GreenZoneBuffer[i] = greenZoneValue;
+
+        double redZoneValue = iHigh(NULL, 0, RedZonePeriod, i) + iLow(NULL, 0, RedZonePeriod, i) / 2;
+        RedZoneBuffer[i] = redZoneValue;
+    }
+
+    // Generate buy and sell signals
+    for (int i = 0; i < limit; i++)
+    {
+        // Generate buy signal when price is within green zone and moving average is trending upwards
+        if (close[i] > GreenZoneBuffer[i] && MovingAverageBuffer[i] > MovingAverageBuffer[i - 1])
+        {
+            // Execute buy trade
+            // ...
+            Print('Buy signal generated at ', time[i]);
+        }
+
+        // Generate sell signal when price is within red zone and moving average is trending downwards
+        if (close[i] < RedZoneBuffer[i] && MovingAverageBuffer[i] < MovingAverageBuffer[i - 1])
+        {
+            // Execute sell trade
+            // ...
+            Print('Sell signal generated at ', time[i]);
+        }
+    }
+
+    return rates_total;
+}
